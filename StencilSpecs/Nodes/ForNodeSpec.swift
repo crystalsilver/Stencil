@@ -41,4 +41,10 @@ describe("ForNode") {
     let node = ForNode(variable: "items", loopVariable: "item", nodes: nodes, emptyNodes: [])
     try expect(try node.render(nsarray_context)) == "123" 
   }
+
+  $0.it("renders the given nodes with limit") {
+    let nodes: [NodeType] = [VariableNode(variable: "item")]
+    let node = ForNode(variable: "items", loopVariable: "item", nodes: nodes, emptyNodes: [], limit: 2)
+    try expect(try node.render(context)) == "12"
+  }
 }

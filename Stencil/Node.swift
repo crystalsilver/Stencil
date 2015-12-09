@@ -120,6 +120,7 @@ public class ForNode : NodeType {
   let loopVariable:String
   let nodes:[NodeType]
   let emptyNodes: [NodeType]
+  let limit: Int?
 
   public class func parse(parser:TokenParser, token:Token) throws -> NodeType {
     let components = token.components()
@@ -147,18 +148,26 @@ public class ForNode : NodeType {
     return ForNode(variable: variable, loopVariable: loopVariable, nodes: forNodes, emptyNodes:emptyNodes)
   }
 
-  public init(variable:String, loopVariable:String, nodes:[NodeType], emptyNodes:[NodeType]) {
+  public init(variable:String, loopVariable:String, nodes:[NodeType], emptyNodes:[NodeType], limit: Int? = nil) {
     self.variable = Variable(variable)
     self.loopVariable = loopVariable
     self.nodes = nodes
     self.emptyNodes = emptyNodes
+    self.limit = limit
   }
 
   public func render(context: Context) throws -> String {
     let values = try variable.resolve(context)
 
     if let values = values as? [Any] where values.count > 0 {
-      return try values.map { item in
+      let limitedValues: [Any]
+      if let limit = limit {
+        limitedValues = Array(values[0..<min(limit, values.count)])
+      }
+      else {
+        limitedValues = values
+      }
+      return try limitedValues.map { item in
         try context.push([loopVariable: item]) {
           try renderNodes(nodes, context)
         }
