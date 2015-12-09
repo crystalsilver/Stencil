@@ -125,13 +125,21 @@ public class ForNode : NodeType {
   public class func parse(parser:TokenParser, token:Token) throws -> NodeType {
     let components = token.components()
 
-    guard components.count == 4 && components[2] == "in" else {
-      throw TemplateSyntaxError("'for' statements should use the following 'for x in y' `\(token.contents)`.")
+    guard components[2] == "in" && (components.count == 4 || (components.count == 5 && components[4].hasPrefix("limit")))  else {
+      throw TemplateSyntaxError("'for' statements should use the following 'for x in y (limit: n)' `\(token.contents)`.")
     }
 
     let loopVariable = components[1]
     let variable = components[3]
 
+    var limit: Int? = nil
+    if components.count == 5 {
+        let limitComponents = components[4].splitAndTrimWhitespace(":")
+        if limitComponents.count == 2 {
+            limit = Int(limitComponents[1])
+        }
+    }
+    
     var emptyNodes = [NodeType]()
 
     let forNodes = try parser.parse(until(["endfor", "empty"]))
@@ -145,7 +153,7 @@ public class ForNode : NodeType {
       parser.nextToken()
     }
 
-    return ForNode(variable: variable, loopVariable: loopVariable, nodes: forNodes, emptyNodes:emptyNodes)
+    return ForNode(variable: variable, loopVariable: loopVariable, nodes: forNodes, emptyNodes:emptyNodes, limit: limit)
   }
 
   public init(variable:String, loopVariable:String, nodes:[NodeType], emptyNodes:[NodeType], limit: Int? = nil) {
