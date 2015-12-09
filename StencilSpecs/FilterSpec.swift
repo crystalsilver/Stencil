@@ -65,6 +65,23 @@ describe("template filters") {
 
     try expect(try template.render(context, namespace: namespace)).toThrow(TemplateSyntaxError("Filter 'repeat' expects no arguments. 1 argument(s) received"))
   }
+
+  $0.it("allows chaining of multiple filters") {
+    let template = Template(templateString: "{{ name | lowercase | repeat: 3 }}")
+    let namespace = Namespace()
+    let filter = Filter() { value, arguments in
+      guard let value = value as? String, let repeatCount = arguments.first as? Int else {
+        return nil
+      }
+      
+      let values: [String] = Array(count: repeatCount, repeatedValue: value)
+      return values.joinWithSeparator(" ")
+    }
+    namespace.registerFilter("repeat", filter: filter) 
+
+    let result = try template.render(context, namespace: namespace)
+    try expect(result) == "kyle kyle kyle"
+  }
 }
 
 
