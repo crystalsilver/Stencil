@@ -33,18 +33,18 @@ public struct Lexer {
       "{#": "#}",
     ]
 
-    while !scanner.isEmpty {
-      if let text = scanner.scan(until: ["{{", "{%", "{#"]) {
-        if !text.1.isEmpty {
-          tokens.append(createToken(text.1))
+    while !scanner.atEnd {
+      let (match, result)  = scanner.scan(until: ["{{", "{%", "{#"])
+      if let match = match {
+        if !result.isEmpty {
+          tokens.append(createToken(result))
         }
 
-        let end = map[text.0]!
+        let end = map[match]!
         let result = scanner.scan(until: end, returnUntil: true)
         tokens.append(createToken(result))
       } else {
-        tokens.append(createToken(scanner.content))
-        scanner.content = ""
+        tokens.append(createToken(result))
       }
     }
 
@@ -54,61 +54,60 @@ public struct Lexer {
 
 
 class Scanner {
-  var content: String
+  let content: String
 
   init(_ content: String) {
     self.content = content
+    self.scanLocation = content.startIndex
   }
 
-  var isEmpty: Bool {
-    return content.isEmpty
+  var atEnd: Bool {
+    return scanLocation == content.endIndex
   }
+    
+  var scanLocation: String.Index
 
   func scan(until until: String, returnUntil: Bool = false) -> String {
     if until.isEmpty {
       return ""
     }
 
-    var index = content.startIndex
-    while index != content.endIndex {
-      let substring = content[index..<content.endIndex]
+    let currentStartLocation = scanLocation
+    while scanLocation != content.endIndex {
+      let substring = content[scanLocation..<content.endIndex]
       if substring.hasPrefix(until) {
-        let result = content[content.startIndex..<index]
-        content = substring
-
+        let result = content[currentStartLocation..<scanLocation]
         if returnUntil {
-          content = content[until.endIndex..<content.endIndex]
+          scanLocation = scanLocation.advancedBy(until.characters.count)
           return result + until
         }
-
         return result
       }
 
-      index = index.successor()
+        scanLocation = scanLocation.successor()
     }
 
     return ""
   }
 
-  func scan(until until: [String]) -> (String, String)? {
+  func scan(until until: [String]) -> (String?, String) {
     if until.isEmpty {
-      return nil
+        return (nil, content[scanLocation..<content.endIndex])
     }
 
-    var index = content.startIndex
-    while index != content.endIndex {
-      let substring = content[index..<content.endIndex]
+    let currentStartLocation = scanLocation
+    while scanLocation != content.endIndex {
+      let substring = content[scanLocation..<content.endIndex]
       for string in until {
         if substring.hasPrefix(string) {
-          let result = content[content.startIndex..<index]
-          content = substring
+          let result = content[currentStartLocation..<scanLocation]
           return (string, result)
         }
       }
 
-      index = index.successor()
+      scanLocation = scanLocation.successor()
     }
 
-    return nil
+    return (nil, content[currentStartLocation..<scanLocation])
   }
 }
