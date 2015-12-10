@@ -248,12 +248,20 @@ public class IfNode : NodeType {
   public func render(context: Context) throws -> String {
     let result = try variable.resolve(context)
     var truthy = false
-
-    if let result = result as? [Any] {
-      truthy = !result.isEmpty
-    } else if let result = result as? [String:Any] {
-      truthy = !result.isEmpty
-    } else if result != nil {
+    
+    if let array = result as? [Any] {
+      truthy = !array.isEmpty
+    }
+    else if let dictionary = result as? [String:Any] {
+      truthy = !dictionary.isEmpty
+    }
+    else if let string = result as? String {
+      truthy = !string.isEmpty
+    }
+    else if let bool = result as? Bool {
+        truthy = bool
+    }
+    else if result != nil {
       truthy = true
     }
 

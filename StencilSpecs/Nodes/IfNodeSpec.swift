@@ -71,7 +71,7 @@ describe("IfNode") {
   }
 
   $0.describe("rendering") {
-    let context = Context(dictionary: ["items": true])
+    let context = Context(dictionary: ["items": true, "not_so": false, "empty": ""])
 
     $0.it("renders the truth when expression evaluates to true") {
       let node = IfNode(variable: "items", trueNodes: [TextNode(text: "true")], falseNodes: [TextNode(text: "false")])
@@ -79,7 +79,17 @@ describe("IfNode") {
     }
 
     $0.it("renders the false when expression evaluates to false") {
-      let node = IfNode(variable: "unknown", trueNodes: [TextNode(text: "true")], falseNodes: [TextNode(text: "false")])
+      let node = IfNode(variable: "not_so", trueNodes: [TextNode(text: "true")], falseNodes: [TextNode(text: "false")])
+      try expect(try node.render(context)) == "false"
+    }
+
+    $0.it("renders the false when expression key is unknown") {
+      let node = IfNode(variable: "unknown_key", trueNodes: [TextNode(text: "true")], falseNodes: [TextNode(text: "false")])
+      try expect(try node.render(context)) == "false"
+    }
+
+    $0.it("renders the false when expression evaluates to empty string") {
+      let node = IfNode(variable: "empty", trueNodes: [TextNode(text: "true")], falseNodes: [TextNode(text: "false")])
       try expect(try node.render(context)) == "false"
     }
 

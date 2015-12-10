@@ -15,7 +15,7 @@ public class IncludeNode : NodeType {
     return IncludeNode(templateName: Variable(bits[1]), namespace: parser.namespace)
   }
 
-   public init(templateName: Variable, namespace: Namespace?) {
+   public init(templateName: Variable, namespace: Namespace? = nil) {
     self.templateName = templateName
     self.namespace = namespace
   }
