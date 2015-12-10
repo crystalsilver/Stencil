@@ -50,32 +50,37 @@ extension String {
         // if respectQuotes is true, leave quoted phrases together
         var word = ""
         var components: [String] = []
-        var tempSeparator = separator
         
-        for character in characters {
-            if character == tempSeparator {
-                if character != separator {
-                    word.append(character)
-                }
-                
-                if !word.trim(" ").isEmpty {
+        let scanner = Scanner(self)
+        while !scanner.atEnd {
+            let (match, result) = scanner.scan(until: [String(separator), "'", "\""])
+            if let match = match {
+                switch match {
+                case "'", "\"":
+                    word += result + match
+                    scanner.scan(until: match, returnUntil: true)
+                    let result = scanner.scan(until: match, returnUntil: true)
+                    if !result.isEmpty {
+                        word += result
+                    }
+                    if scanner.atEnd {
+                        components.append(word)
+                    }
+                case String(separator):
+                    // add to components
+                    word += result
                     components.append(word)
                     word = ""
+                    scanner.scan(until: String(separator), returnUntil: true)
+                    break
+                default:
+                    break
                 }
-                
-                tempSeparator = separator
             }
             else {
-                if tempSeparator == separator && (character == "'" || character == "\"") {
-                    tempSeparator = character
-                }
-                
-                word.append(character)
+                word += result
+                components.append(word)
             }
-        }
-        
-        if !word.isEmpty {
-            components.append(word)
         }
         
         return components
