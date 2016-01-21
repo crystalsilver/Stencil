@@ -10,12 +10,15 @@ public struct Lexer {
       return string[string.startIndex.successor().successor()..<string.endIndex.predecessor().predecessor()].trim(" ")
     }
 
-    if string.hasPrefix("{{") {
-      return Token.Variable(value: strip())
-    } else if string.hasPrefix("{%") {
-      return Token.Block(value: strip())
-    } else if string.hasPrefix("{#") {
-      return Token.Comment(value: strip())
+    // this cannot be a special tag unless it has more than 4 characters. (prevents crash on strip method for incomplete tags)
+    if string.characters.count > 4 {
+        if string.hasPrefix("{{") {
+            return Token.Variable(value: strip())
+        } else if string.hasPrefix("{%") {
+            return Token.Block(value: strip())
+        } else if string.hasPrefix("{#") {
+            return Token.Comment(value: strip())
+        }
     }
 
     return Token.Text(value: string)
