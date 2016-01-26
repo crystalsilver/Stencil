@@ -204,8 +204,10 @@ public class IfNode : NodeType {
     let leftArgument = components[1]
     let rightArgument: String? = components.count == 4 ? components[3] : nil
     let comparisonOperator: ComparisonOperatorType? = components.count == 4 ? ComparisonOperatorType(rawValue: components[2]) : nil
-        
-    // TODO: create guard statement for unknown operator types
+    
+    guard (rightArgument != nil && comparisonOperator == nil) == false else {
+        throw TemplateSyntaxError("\(components[2]) comparison operator is not (currently) supported.")
+    }
     
     var trueNodes = [NodeType]()
     var falseNodes = [NodeType]()

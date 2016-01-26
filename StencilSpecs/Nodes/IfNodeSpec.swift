@@ -83,6 +83,16 @@ describe("IfNode") {
       try expect(try parser.parse()).toThrow(error)
     }
 
+    $0.it("throws an error when parsing an if block with unsupported comparison operator") {
+      let tokens = [
+        Token.Block(value: "if value > otherValue"),
+      ]
+
+      let parser = TokenParser(tokens: tokens, namespace: Namespace())
+      let error = TemplateSyntaxError("> comparison operator is not (currently) supported.")
+      try expect(try parser.parse()).toThrow(error)
+    }
+
     $0.it("throws an error when parsing an ifnot without an endif") {
       let tokens = [
         Token.Block(value: "ifnot value"),
