@@ -79,6 +79,16 @@ public struct Variable : Equatable, Resolvable {
       // String literal
       return variable[variable.startIndex.successor() ..< variable.endIndex.predecessor()]
     }
+    
+    if let int = Int(variable) {
+        // integer literal
+        return int
+    }
+    
+    if let double = Double(variable) {
+        // double literal
+        return double
+    }
 
     for bit in lookup() {
       if let context = current as? Context {

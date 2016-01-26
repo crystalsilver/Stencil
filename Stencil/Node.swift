@@ -189,16 +189,24 @@ public class ForNode : NodeType {
 }
 
 public class IfNode : NodeType {
-  public let variable:Variable
+  public let leftArgument:Variable
+  public let rightArgument: Variable?
+  let comparisonOperator: ComparisonOperatorType?
   public let trueNodes:[NodeType]
   public let falseNodes:[NodeType]
 
   public class func parse(parser:TokenParser, token:Token) throws -> NodeType {
     let components = token.components()
-    guard components.count == 2 else {
-      throw TemplateSyntaxError("'if' statements should use the following 'if condition' `\(token.contents)`.")
+    guard components.count == 2 || components.count == 4 else {
+      throw TemplateSyntaxError("'if' statements should use the following 'if value (== otherValue)', not: '\(token.contents)'.")
     }
-    let variable = components[1]
+    
+    let leftArgument = components[1]
+    let rightArgument: String? = components.count == 4 ? components[3] : nil
+    let comparisonOperator: ComparisonOperatorType? = components.count == 4 ? ComparisonOperatorType(rawValue: components[2]) : nil
+        
+    // TODO: create guard statement for unknown operator types
+    
     var trueNodes = [NodeType]()
     var falseNodes = [NodeType]()
 
@@ -213,7 +221,7 @@ public class IfNode : NodeType {
       parser.nextToken()
     }
 
-    return IfNode(variable: variable, trueNodes: trueNodes, falseNodes: falseNodes)
+    return IfNode(leftArgument: leftArgument, rightArgument: rightArgument, comparisonOperator: comparisonOperator, trueNodes: trueNodes, falseNodes: falseNodes)
   }
 
   public class func parse_ifnot(parser:TokenParser, token:Token) throws -> NodeType {
@@ -236,38 +244,22 @@ public class IfNode : NodeType {
       parser.nextToken()
     }
 
-    return IfNode(variable: variable, trueNodes: trueNodes, falseNodes: falseNodes)
+    return IfNode(leftArgument: variable, trueNodes: trueNodes, falseNodes: falseNodes)
   }
 
-  public init(variable:String, trueNodes:[NodeType], falseNodes:[NodeType]) {
-    self.variable = Variable(variable)
+  public init(leftArgument: String, rightArgument: String? = nil, comparisonOperator: ComparisonOperatorType? = nil, trueNodes:[NodeType], falseNodes:[NodeType]) {
+    self.leftArgument = Variable(leftArgument)
+    self.rightArgument = rightArgument.map() { Variable($0) }
+    self.comparisonOperator = comparisonOperator
     self.trueNodes = trueNodes
     self.falseNodes = falseNodes
   }
 
   public func render(context: Context) throws -> String {
-    let result = try variable.resolve(context)
-    var truthy = false
-    
-    if let array = result as? [Any] {
-      truthy = !array.isEmpty
-    }
-    else if let dictionary = result as? [String:Any] {
-      truthy = !dictionary.isEmpty
-    }
-    else if let string = result as? String {
-      truthy = !string.isEmpty
-    }
-    else if let bool = result as? Bool {
-        truthy = bool
-    }
-    else if result != nil {
-      truthy = true
-    }
-
+    let resolver = IfNodeResolver(leftArgument: leftArgument, rightArgument: rightArgument, comparisonOperator: comparisonOperator)
     context.push()
     let output:String
-    if truthy {
+    if try resolver.isTruthy(context) {
       output = try renderNodes(trueNodes, context)
     } else {
       output = try renderNodes(falseNodes, context)
@@ -276,4 +268,100 @@ public class IfNode : NodeType {
 
     return output
   }
+}
+
+public enum ComparisonOperatorType: String {
+    case Equality = "=="
+}
+
+struct IfNodeResolver {
+    let leftArgument: Variable
+    let rightArgument: Variable?
+    let comparisonOperator: ComparisonOperatorType?
+    
+    func isTruthy(context: Context) throws -> Bool {
+        let resolvedLeftArgument = try leftArgument.resolve(context)
+        if let rightArgument = rightArgument {
+            let resolvedRightArgument = try rightArgument.resolve(context)
+            return isTruthy(resolvedLeftArgument, rightArgument: resolvedRightArgument, comparisonOperator: comparisonOperator!)
+        }
+        else {
+            return isTruthy(object: resolvedLeftArgument)
+        }
+    }
+    
+    private func isTruthy(object object: Any?) -> Bool {
+        guard let object = object else {
+            return false
+        }
+        
+        var truthy = true
+        
+        if let array = object as? [Any] {
+            truthy = !array.isEmpty
+        }
+        else if let dictionary = object as? [String:Any] {
+            truthy = !dictionary.isEmpty
+        }
+        else if let string = object as? String {
+            truthy = !string.isEmpty
+        }
+        else if let bool = object as? Bool {
+            truthy = bool
+        }
+        else if let int = object as? Int {
+            truthy = (int > 0)
+        }
+        else if let double = object as? Double {
+            truthy = (double > 0.0)
+        }
+        
+        return truthy
+    }
+    
+    private func isTruthy(leftArgument: Any?, rightArgument: Any?, comparisonOperator: ComparisonOperatorType) -> Bool {
+        switch comparisonOperator {
+        case .Equality:
+            return isEqual(leftArgument, rightArgument: rightArgument)
+        }
+    }
+    
+    private func isEqual(leftArgument: Any?, rightArgument: Any?) -> Bool {
+        guard let left = leftArgument, right = rightArgument else {
+            return (leftArgument == nil && rightArgument == nil)
+        }
+        
+        if let leftArray = left as? [String] {
+            if let rightArray = right as? [String] {
+                return leftArray == rightArray
+            }
+        }
+        else if let leftDictionary = left as? [String: String] {
+            if let rightDictionary = right as? [String: String] {
+                return leftDictionary == rightDictionary
+            }
+        }
+        else if let leftString = left as? String {
+            if let rightString = right as? String {
+                return leftString == rightString
+            }
+        }
+        else if let leftBool = left as? Bool {
+            if let rightBool = right as? Bool {
+                return leftBool == rightBool
+            }
+        }
+        else if let leftInt = left as? Int {
+            if let rightInt = right as? Int {
+                return leftInt == rightInt
+            }
+        }
+        else if let leftDouble = left as? Double {
+            if let rightDouble = right as? Double {
+                return leftDouble == rightDouble
+            }
+        }
+        
+        return false
+    }
 }
