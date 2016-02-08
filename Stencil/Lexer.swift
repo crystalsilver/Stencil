@@ -36,18 +36,39 @@ public struct Lexer {
       "{#": "#}",
     ]
 
+    var parseRaw = false
+    
+    func append(token: Token) {
+        if case .Block(let value) = token where value == "raw" {
+            parseRaw = true
+        }
+        tokens.append(token)
+    }
+    
+    func create(string: String) -> Token {
+        let token = createToken(string)
+        if case .Block(let value) = token where value == "endraw" {
+            parseRaw = false
+        }
+        else if parseRaw {
+            return Token.Text(value: string)
+        }
+        
+        return token
+    }
+    
     while !scanner.atEnd {
       let (match, result)  = scanner.scan(until: ["{{", "{%", "{#"])
       if let match = match {
         if !result.isEmpty {
-          tokens.append(createToken(result))
+          append(create(result))
         }
 
         let end = map[match]!
         let result = scanner.scan(until: end, returnUntil: true)
-        tokens.append(createToken(result))
+        append(create(result))
       } else {
-        tokens.append(createToken(result))
+        append(create(result))
       }
     }
 
