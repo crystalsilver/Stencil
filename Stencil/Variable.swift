@@ -15,7 +15,12 @@ struct FilterInvocation {
     case .VariadicFilter(let function):
         var resolvedArguments: [Any?] = []
         for argument in arguments {
-            resolvedArguments.append(try argument.resolve(context))
+            if let resolved = try argument.resolve(context) {
+                resolvedArguments.append(resolved)
+            }
+            else {
+                throw TemplateSyntaxError("Failed to resolve argument '\(argument.variable)' in \(name) filter")
+            }
         }
         return try function(value, resolvedArguments)
     }
