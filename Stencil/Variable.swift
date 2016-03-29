@@ -110,8 +110,6 @@ public struct Variable : Equatable, Resolvable {
         } else if bit == "count" {
           current = array.count
         }
-      } else if let object = current as? NSObject {  // NSKeyValueCoding
-        current = object.valueForKey(bit)
       } else {
         return nil
       }
