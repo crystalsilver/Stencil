@@ -98,9 +98,9 @@ class Scanner {
 
     let currentStartLocation = scanLocation
     while scanLocation != content.endIndex {
-      let substring = content[scanLocation..<content.endIndex]
+        let substring = content.substringWithRange(scanLocation..<content.endIndex)
       if substring.hasPrefix(until) {
-        let result = content[currentStartLocation..<scanLocation]
+        let result = content.substringWithRange(currentStartLocation..<scanLocation)
         if returnUntil {
           scanLocation = scanLocation.advancedBy(until.characters.count)
           return result + until
@@ -116,15 +116,15 @@ class Scanner {
 
   func scan(until until: [String]) -> (String?, String) {
     if until.isEmpty {
-        return (nil, content[scanLocation..<content.endIndex])
+        return (nil, content.substringWithRange(scanLocation..<content.endIndex))
     }
 
     let currentStartLocation = scanLocation
     while scanLocation != content.endIndex {
-      let substring = content[scanLocation..<content.endIndex]
+        let substring = content.substringWithRange(scanLocation..<content.endIndex)
       for string in until {
         if substring.hasPrefix(string) {
-          let result = content[currentStartLocation..<scanLocation]
+            let result = content.substringWithRange(currentStartLocation..<scanLocation)
           return (string, result)
         }
       }
@@ -132,6 +132,6 @@ class Scanner {
       scanLocation = scanLocation.successor()
     }
 
-    return (nil, content[currentStartLocation..<scanLocation])
+    return (nil, content.substringWithRange(currentStartLocation..<scanLocation))
   }
 }
