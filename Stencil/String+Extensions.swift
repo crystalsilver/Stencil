@@ -9,31 +9,31 @@
 import Foundation
 
 extension String {
-    func findFirstNot(character: Character) -> String.Index? {
+    func findFirstNot(_ character: Character) -> String.Index? {
         var index = startIndex
         while index != endIndex {
             if character != self[index] {
                 return index
             }
-            index = index.successor()
+            index = self.index(after: index)
         }
         
         return nil
     }
     
-    func findLastNot(character: Character) -> String.Index? {
-        var index = endIndex.predecessor()
+    func findLastNot(_ character: Character) -> String.Index? {
+        var index = characters.index(before: endIndex)
         while index != startIndex {
             if character != self[index] {
-                return index.successor()
+                return self.index(after: index)
             }
-            index = index.predecessor()
+            index = self.index(before: index)
         }
         
         return nil
     }
     
-    func trim(character: Character) -> String {
+    func trim(_ character: Character) -> String {
         guard let first = findFirstNot(character) else {
             return ""
         }
@@ -42,9 +42,9 @@ extension String {
         return self[first..<last]
     }
     
-    func split(separator: Character, respectQuotes: Bool = false) -> [String] {
+    func split(_ separator: Character, respectQuotes: Bool = false) -> [String] {
         guard respectQuotes == true else {
-            return characters.split(separator).map(String.init)
+            return characters.split(separator: separator).map(String.init)
         }
         
         // if respectQuotes is true, leave quoted phrases together
@@ -58,7 +58,7 @@ extension String {
                 switch match {
                 case "'", "\"":
                     word += result + match
-                    scanner.scan(until: match, returnUntil: true)
+                    _ = scanner.scan(until: match, returnUntil: true)
                     let result = scanner.scan(until: match, returnUntil: true)
                     if !result.isEmpty {
                         word += result
@@ -71,7 +71,7 @@ extension String {
                     word += result
                     components.append(word)
                     word = ""
-                    scanner.scan(until: String(separator), returnUntil: true)
+                    _ = scanner.scan(until: String(separator), returnUntil: true)
                     break
                 default:
                     break
@@ -86,7 +86,7 @@ extension String {
         return components
     }
     
-    func splitAndTrimWhitespace(separator: Character, respectQuotes: Bool = false) -> [String] {
+    func splitAndTrimWhitespace(_ separator: Character, respectQuotes: Bool = false) -> [String] {
         return split(separator, respectQuotes: respectQuotes).map({ $0.trim(" ") })
     }
 }

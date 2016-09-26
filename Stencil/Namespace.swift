@@ -26,19 +26,19 @@ public class Namespace {
   }
 
   /// Registers a new template tag
-  public func registerTag(name: String, parser: TagParser) {
+  public func registerTag(_ name: String, parser: @escaping TagParser) {
     tags[name] = parser
   }
 
   /// Registers a simple template tag with a name and a handler
-  public func registerSimpleTag(name: String, handler: Context throws -> String) {
+  public func registerSimpleTag(name: String, handler: @escaping (Context) throws -> String) {
     registerTag(name, parser: { parser, token in
       return SimpleNode(handler: handler)
     })
   }
 
   /// Registers a template filter with the given name
-  public func registerFilter(name: String, filter: Filter) {
+  public func registerFilter(_ name: String, filter: Filter) {
     filters[name] = filter
   }
 }

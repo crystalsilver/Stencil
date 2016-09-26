@@ -20,7 +20,7 @@ public class IncludeNode : NodeType {
     self.namespace = namespace
   }
 
-  public func render(context: Context) throws -> String {
+  public func render(_ context: Context) throws -> String {
     guard let loader = context["loader"] as? TemplateLoader else {
       throw TemplateSyntaxError("Template loader not in context")
     }
@@ -30,7 +30,7 @@ public class IncludeNode : NodeType {
     }
 
     guard let template = loader.loadTemplate(templateName) else {
-      let paths = loader.paths.map { $0.description }.joinWithSeparator(", ")
+      let paths = loader.paths.map { $0.description }.joined(separator: ", ")
       throw TemplateSyntaxError("'\(templateName)' template not found in \(paths)")
     }
 

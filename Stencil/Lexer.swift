@@ -5,23 +5,23 @@ public struct Lexer {
     self.templateString = templateString
   }
 
-  func createToken(string:String) -> Token {
+  func createToken(_ string:String) -> Token {
     func strip() -> String {
-      return string[string.startIndex.successor().successor()..<string.endIndex.predecessor().predecessor()].trim(" ")
+      return string[string.index(string.startIndex, offsetBy: 2)..<string.index(string.endIndex, offsetBy: -2)].trim(" ")
     }
 
     // this cannot be a special tag unless it has more than 4 characters. (prevents crash on strip method for incomplete tags)
     if string.characters.count > 4 {
         if string.hasPrefix("{{") {
-            return Token.Variable(value: strip())
+            return Token.variable(value: strip())
         } else if string.hasPrefix("{%") {
-            return Token.Block(value: strip())
+            return Token.block(value: strip())
         } else if string.hasPrefix("{#") {
-            return Token.Comment(value: strip())
+            return Token.comment(value: strip())
         }
     }
 
-    return Token.Text(value: string)
+    return Token.text(value: string)
   }
 
   /// Returns an array of tokens from a given template string.
@@ -38,20 +38,20 @@ public struct Lexer {
 
     var parseRaw = false
     
-    func append(token: Token) {
-        if case .Block(let value) = token where value == "raw" {
+    func append(_ token: Token) {
+        if case .block(let value) = token , value == "raw" {
             parseRaw = true
         }
         tokens.append(token)
     }
     
-    func create(string: String) -> Token {
+    func create(_ string: String) -> Token {
         let token = createToken(string)
-        if case .Block(let value) = token where value == "endraw" {
+        if case .block(let value) = token , value == "endraw" {
             parseRaw = false
         }
         else if parseRaw {
-            return Token.Text(value: string)
+            return Token.text(value: string)
         }
         
         return token
@@ -91,47 +91,47 @@ class Scanner {
     
   var scanLocation: String.Index
 
-  func scan(until until: String, returnUntil: Bool = false) -> String {
+  func scan(until: String, returnUntil: Bool = false) -> String {
     if until.isEmpty {
       return ""
     }
 
     let currentStartLocation = scanLocation
     while scanLocation != content.endIndex {
-        let substring = content.substringWithRange(scanLocation..<content.endIndex)
+        let substring = content.substring(with: scanLocation..<content.endIndex)
       if substring.hasPrefix(until) {
-        let result = content.substringWithRange(currentStartLocation..<scanLocation)
+        let result = content.substring(with: currentStartLocation..<scanLocation)
         if returnUntil {
-          scanLocation = scanLocation.advancedBy(until.characters.count)
+          scanLocation = content.index(scanLocation, offsetBy: until.characters.count)
           return result + until
         }
         return result
       }
 
-        scanLocation = scanLocation.successor()
+        scanLocation = content.index(after: scanLocation)
     }
 
     return ""
   }
 
-  func scan(until until: [String]) -> (String?, String) {
+  func scan(until: [String]) -> (String?, String) {
     if until.isEmpty {
-        return (nil, content.substringWithRange(scanLocation..<content.endIndex))
+        return (nil, content.substring(with: scanLocation..<content.endIndex))
     }
 
     let currentStartLocation = scanLocation
     while scanLocation != content.endIndex {
-        let substring = content.substringWithRange(scanLocation..<content.endIndex)
+        let substring = content.substring(with: scanLocation..<content.endIndex)
       for string in until {
         if substring.hasPrefix(string) {
-            let result = content.substringWithRange(currentStartLocation..<scanLocation)
+            let result = content.substring(with: currentStartLocation..<scanLocation)
           return (string, result)
         }
       }
 
-      scanLocation = scanLocation.successor()
+        scanLocation = content.index(after: scanLocation)
     }
 
-    return (nil, content.substringWithRange(currentStartLocation..<scanLocation))
+    return (nil, content.substring(with: currentStartLocation..<scanLocation))
   }
 }

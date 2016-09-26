@@ -1,6 +1,6 @@
 import Foundation
 
-public struct TemplateSyntaxError : ErrorType, Equatable, CustomStringConvertible {
+public struct TemplateSyntaxError : Error, Equatable, CustomStringConvertible {
   public let description:String
 
   public init(_ description:String) {
@@ -14,22 +14,22 @@ public func ==(lhs:TemplateSyntaxError, rhs:TemplateSyntaxError) -> Bool {
 
 public protocol NodeType {
   /// Render the node in the given context
-  func render(context:Context) throws -> String
+  func render(_ context:Context) throws -> String
 }
 
 /// Render the collection of nodes in the given context
-public func renderNodes(nodes:[NodeType], _ context:Context) throws -> String {
-  return try nodes.map { try $0.render(context) }.joinWithSeparator("")
+public func renderNodes(_ nodes:[NodeType], _ context:Context) throws -> String {
+  return try nodes.map { try $0.render(context) }.joined(separator: "")
 }
 
 public class SimpleNode : NodeType {
-  let handler:Context throws -> String
+  let handler:(Context) throws -> String
 
-  public init(handler:Context throws -> String) {
+  public init(handler:@escaping (Context) throws -> String) {
     self.handler = handler
   }
 
-  public func render(context: Context) throws -> String {
+  public func render(_ context: Context) throws -> String {
     return try handler(context)
   }
 }
@@ -41,13 +41,13 @@ public class TextNode : NodeType {
     self.text = text
   }
 
-  public func render(context:Context) throws -> String {
+  public func render(_ context:Context) throws -> String {
     return self.text
   }
 }
 
 public protocol Resolvable {
-  func resolve(context: Context) throws -> Any?
+  func resolve(_ context: Context) throws -> Any?
 }
 
 public class VariableNode : NodeType {
@@ -61,7 +61,7 @@ public class VariableNode : NodeType {
     self.variable = Variable(variable)
   }
 
-  public func render(context: Context) throws -> String {
+  public func render(_ context: Context) throws -> String {
     let result = try variable.resolve(context)
 
     if let result = result as? String {
@@ -97,21 +97,21 @@ public class NowNode : NodeType {
     self.format = format ?? Variable("\"yyyy-MM-dd 'at' HH:mm\"")
   }
 
-  public func render(context: Context) throws -> String {
-    let date = NSDate()
+  public func render(_ context: Context) throws -> String {
+    let date = Date()
     let format = try self.format.resolve(context)
-    var formatter:NSDateFormatter?
+    var formatter:DateFormatter?
 
-    if let format = format as? NSDateFormatter {
+    if let format = format as? DateFormatter {
       formatter = format
     } else if let format = format as? String {
-      formatter = NSDateFormatter()
+      formatter = DateFormatter()
       formatter!.dateFormat = format
     } else {
       return ""
     }
 
-    return formatter!.stringFromDate(date)
+    return formatter!.string(from: date)
   }
 }
 
@@ -164,10 +164,10 @@ public class ForNode : NodeType {
     self.limit = limit
   }
 
-  public func render(context: Context) throws -> String {
+  public func render(_ context: Context) throws -> String {
     let values = try variable.resolve(context)
 
-    if let values = values as? [Any] where values.count > 0 {
+    if let values = values as? [Any] , values.count > 0 {
       let limitedValues: [Any]
       if let limit = limit {
         limitedValues = Array(values[0..<min(limit, values.count)])
@@ -179,7 +179,7 @@ public class ForNode : NodeType {
         try context.push([loopVariable: item]) {
           try renderNodes(nodes, context)
         }
-      }.joinWithSeparator("")
+      }.joined(separator: "")
     }
 
     return try context.push {
@@ -257,7 +257,7 @@ public class IfNode : NodeType {
     self.falseNodes = falseNodes
   }
 
-  public func render(context: Context) throws -> String {
+  public func render(_ context: Context) throws -> String {
     let resolver = IfNodeResolver(leftArgument: leftArgument, rightArgument: rightArgument, comparisonOperator: comparisonOperator)
     context.push()
     let output:String
@@ -281,7 +281,7 @@ struct IfNodeResolver {
     let rightArgument: Variable?
     let comparisonOperator: ComparisonOperatorType?
     
-    func isTruthy(context: Context) throws -> Bool {
+    func isTruthy(_ context: Context) throws -> Bool {
         let resolvedLeftArgument = try leftArgument.resolve(context)
         if let rightArgument = rightArgument {
             let resolvedRightArgument = try rightArgument.resolve(context)
@@ -292,7 +292,7 @@ struct IfNodeResolver {
         }
     }
     
-    private func isTruthy(object object: Any?) -> Bool {
+    private func isTruthy(object: Any?) -> Bool {
         guard let object = object else {
             return false
         }
@@ -321,15 +321,15 @@ struct IfNodeResolver {
         return truthy
     }
     
-    private func isTruthy(leftArgument: Any?, rightArgument: Any?, comparisonOperator: ComparisonOperatorType) -> Bool {
+    private func isTruthy(_ leftArgument: Any?, rightArgument: Any?, comparisonOperator: ComparisonOperatorType) -> Bool {
         switch comparisonOperator {
         case .Equality:
-            return isEqual(leftArgument, rightArgument: rightArgument)
+            return isEqual(leftArgument, rightArgument)
         }
     }
     
-    private func isEqual(leftArgument: Any?, rightArgument: Any?) -> Bool {
-        guard let left = leftArgument, right = rightArgument else {
+    private func isEqual(_ leftArgument: Any?, _ rightArgument: Any?) -> Bool {
+        guard let left = leftArgument, let right = rightArgument else {
             return (leftArgument == nil && rightArgument == nil)
         }
         

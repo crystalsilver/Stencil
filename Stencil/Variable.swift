@@ -5,14 +5,14 @@ struct FilterInvocation {
   let filter: Filter
   let arguments: [FilterArgument]
   
-  func invoke(value: Any?, context: Context) throws -> Any? {
+  func invoke(_ value: Any?, context: Context) throws -> Any? {
     switch filter {
-    case .SimpleFilter(let function):
+    case .simpleFilter(let function):
         guard arguments.count == 0 else {
             throw TemplateSyntaxError("Filter '\(name)' expects no arguments. \(arguments.count) argument(s) received")
         }
         return try function(value)
-    case .VariadicFilter(let function):
+    case .variadicFilter(let function):
         var resolvedArguments: [Any?] = []
         for argument in arguments {
             if let resolved = try argument.resolve(context) {
@@ -40,12 +40,12 @@ class FilterExpression : Resolvable {
     }
 
     variable = Variable(bits[0])
-    let filterBits = bits[1 ..< bits.endIndex]
+    let filterBits = bits[bits.indices.suffix(from: 1)]
 
     do {
       filterInvocations = try filterBits.map { filterBit in
         let (name, arguments) = parseFilterComponents(filterBit)
-        let filter = try parser.findFilter(name)
+        let filter = try parser.findFilter(name: name)
         return FilterInvocation(name: name, filter: filter, arguments: arguments)
       }
     } catch {
@@ -54,7 +54,7 @@ class FilterExpression : Resolvable {
     }
   }
 
-  func resolve(context: Context) throws -> Any? {
+  func resolve(_ context: Context) throws -> Any? {
     let result = try variable.resolve(context)
 
     return try filterInvocations.reduce(result) { x, y in
@@ -73,16 +73,16 @@ public struct Variable : Equatable, Resolvable {
   }
 
   private func lookup() -> [String] {
-    return variable.characters.split(".").map(String.init)
+    return variable.characters.split(separator: ".").map(String.init)
   }
 
   /// Resolve the variable in the given context
-  public func resolve(context: Context) throws -> Any? {
+  public func resolve(_ context: Context) throws -> Any? {
     var current: Any? = context
 
     if (variable.hasPrefix("'") && variable.hasSuffix("'")) || (variable.hasPrefix("\"") && variable.hasSuffix("\"")) {
       // String literal
-      return variable[variable.startIndex.successor() ..< variable.endIndex.predecessor()]
+      return variable[variable.characters.index(after: variable.startIndex) ..< variable.characters.index(before: variable.endIndex)]
     }
     
     if let int = Int(variable) {
@@ -131,7 +131,7 @@ public struct FilterArgument: Equatable, Resolvable {
         self.variable = variable
     }
     
-    public func resolve(context: Context) throws -> Any? {
+    public func resolve(_ context: Context) throws -> Any? {
         if let integer = Int(variable) {
             // if value is integer literal, return integer value
             return integer
@@ -147,7 +147,7 @@ public func ==(lhs: FilterArgument, rhs: FilterArgument) -> Bool {
     return lhs.variable == rhs.variable
 }
 
-func resolveDictionary(current: Any?) -> [String: Any]? {
+func resolveDictionary(_ current: Any?) -> [String: Any]? {
   switch current {
   case let dictionary as [String: Any]:
       return dictionary
@@ -170,7 +170,7 @@ func resolveDictionary(current: Any?) -> [String: Any]? {
   }
 }
 
-func resolveArray(current: Any?) -> [Any]? {
+func resolveArray(_ current: Any?) -> [Any]? {
   switch current {
   case let array as [Any]:
       return array
@@ -183,7 +183,7 @@ func resolveArray(current: Any?) -> [Any]? {
   }
 }
 
-func normalize(current: Any?) -> Any? {
+func normalize(_ current: Any?) -> Any? {
   if let array = resolveArray(current) {
     return array
   }
@@ -195,7 +195,7 @@ func normalize(current: Any?) -> Any? {
   return current
 }
 
-func parseFilterComponents(token: String) -> (String, [FilterArgument]) {
+func parseFilterComponents(_ token: String) -> (String, [FilterArgument]) {
     let components = token.splitAndTrimWhitespace(":", respectQuotes: true)
     if components.count == 1 {
         return (components[0], [])
